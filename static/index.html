@@ -1,9 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Schichtplan eingeben</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        padding: 20px;
+      }
+      h1,
+      h2 {
+        color: #333;
+      }
+      form {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin: 10px 0 5px;
+      }
+      select,
+      input[type="date"],
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+      }
+      textarea {
+        resize: vertical;
+      }
+      input[type="submit"] {
+        background-color: #007bff;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        cursor: pointer;
+      }
+      input[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+      .response {
+        border: 1px solid #ddd;
+        padding: 10px;
+        background: #f9f9f9;
+      }
+    </style>
   </head>
   <body>
     <h1>Schichtplan eingeben</h1>
@@ -12,16 +57,16 @@
     <form id="shift-form">
       <label for="name">Name:</label>
       <select id="name" name="name" required>
-        <option value="">Bitte auswählen</option></select
-      ><br /><br />
+        <option value="">Bitte auswählen</option>
+      </select>
 
       <label for="date">Datum (YYYY-MM-DD):</label>
-      <input type="date" id="date" name="date" required /><br /><br />
+      <input type="date" id="date" name="date" required />
 
       <label for="shift_type">Schichttyp:</label>
       <select id="shift_type" name="shift_type" required>
-        <option value="">Bitte auswählen</option></select
-      ><br /><br />
+        <option value="">Bitte auswählen</option>
+      </select>
 
       <input type="submit" value="Einzeln hinzufügen" />
     </form>
@@ -32,40 +77,44 @@
     <form id="batch-form">
       <label for="batch-name">Name:</label>
       <select id="batch-name" name="name" required>
-        <option value="">Bitte auswählen</option></select
-      ><br /><br />
+        <option value="">Bitte auswählen</option>
+      </select>
 
-      <label for="batch-shifts"
-        >Schichten (Format: DD.MM:Schichttyp, z.B. 06.08:Früh):</label
-      ><br />
+      <label for="batch-shifts">
+        Schichten (Format: DD.MM:Schichttyp, z.B. 06.08:Früh):
+      </label>
       <textarea
         id="batch-shifts"
         name="batch-shifts"
         rows="10"
-        cols="30"
         required
-      ></textarea
-      ><br /><br />
+      ></textarea>
 
       <div id="available-shift-types">
         <!-- Hier werden die verfügbaren Schichten angezeigt -->
       </div>
-      <br /><br />
 
       <input type="submit" value="Batch hinzufügen" />
     </form>
 
     <h2>Antwort:</h2>
-    <pre id="response"></pre>
+    <pre id="response" class="response"></pre>
 
     <script>
-      // Funktion zum Abrufen der Optionen für die Dropdown-Menüs
-      function fetchOptions() {
-        fetch("/api/options")
-          .then((response) => response.json())
-          .then((data) => {
-            const nameSelect = document.getElementById("name");
-            const batchNameSelect = document.getElementById("batch-name");
+      document.addEventListener("DOMContentLoaded", () => {
+        const nameSelect = document.getElementById("name");
+        const batchNameSelect = document.getElementById("batch-name");
+        const shiftTypeSelect = document.getElementById("shift_type");
+        const availableShiftTypesDiv = document.getElementById(
+          "available-shift-types"
+        );
+        const responsePre = document.getElementById("response");
+
+        // Funktion zum Abrufen der Optionen für die Dropdown-Menüs
+        async function fetchOptions() {
+          try {
+            const response = await fetch("/api/options");
+            const data = await response.json();
 
             // Namen hinzufügen
             data.names.forEach((name) => {
@@ -76,30 +125,27 @@
               batchNameSelect.appendChild(option.cloneNode(true));
             });
 
-            // Schichttypen für Einzel-Schicht-Formular hinzufügen
-            nameSelect.addEventListener("change", function () {
+            // Event-Listener für Einzel-Schicht-Formular
+            nameSelect.addEventListener("change", async function () {
               const selectedName = this.value;
+              shiftTypeSelect.innerHTML =
+                '<option value="">Bitte auswählen</option>';
               if (selectedName) {
-                fetchShiftTypes(selectedName.toLowerCase(), "single");
-              } else {
-                document.getElementById("shift_type").innerHTML =
-                  '<option value="">Bitte auswählen</option>';
+                await fetchShiftTypes(selectedName.toLowerCase(), "single");
               }
             });
-          });
-      }
+          } catch (error) {
+            console.error("Fehler beim Abrufen der Optionen:", error);
+          }
+        }
 
-      // Funktion zum Abrufen der Schichttypen für den ausgewählten Namen
-      function fetchShiftTypes(name, formType) {
-        fetch(`/api/shift_types/${name}`)
-          .then((response) => response.json())
-          .then((data) => {
+        // Funktion zum Abrufen der Schichttypen
+        async function fetchShiftTypes(name, formType) {
+          try {
+            const response = await fetch(`/api/shift_types/${name}`);
+            const data = await response.json();
+
             if (formType === "batch") {
-              const availableShiftTypesDiv = document.getElementById(
-                "available-shift-types"
-              );
-
-              // Schichttypen als Text in der Batch-Import-Section anzeigen
               availableShiftTypesDiv.innerHTML =
                 "<strong>Verfügbare Schichten:</strong><ul>";
               data.shift_types.forEach((shiftType) => {
@@ -107,11 +153,6 @@
               });
               availableShiftTypesDiv.innerHTML += "</ul>";
             } else if (formType === "single") {
-              const shiftTypeSelect = document.getElementById("shift_type");
-
-              // Schichttypen für Einzel-Schicht-Formular aktualisieren
-              shiftTypeSelect.innerHTML =
-                '<option value="">Bitte auswählen</option>';
               data.shift_types.forEach((shiftType) => {
                 const option = document.createElement("option");
                 option.value = shiftType;
@@ -119,98 +160,87 @@
                 shiftTypeSelect.appendChild(option);
               });
             }
-          });
-      }
+          } catch (error) {
+            console.error("Fehler beim Abrufen der Schichttypen:", error);
+          }
+        }
 
-      // Optionen beim Laden der Seite abrufen
-      document.addEventListener("DOMContentLoaded", fetchOptions);
-
-      // Namen-Dropdown ändern (Batch-Import)
-      document
-        .getElementById("batch-name")
-        .addEventListener("change", function () {
+        // Event-Listener für Batch-Import-Formular
+        batchNameSelect.addEventListener("change", async function () {
           const selectedName = this.value;
           if (selectedName) {
-            fetchShiftTypes(selectedName.toLowerCase(), "batch");
+            await fetchShiftTypes(selectedName.toLowerCase(), "batch");
           } else {
-            document.getElementById("available-shift-types").innerHTML = "";
+            availableShiftTypesDiv.innerHTML = "";
           }
         });
 
-      // Einzelne Schicht hinzufügen
-      document
-        .getElementById("shift-form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-          const name = document.getElementById("name").value;
-          const date = document.getElementById("date").value;
-          const shiftType = document.getElementById("shift_type").value;
+        // Einzelne Schicht hinzufügen
+        document
+          .getElementById("shift-form")
+          .addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const name = nameSelect.value;
+            const date = document.getElementById("date").value;
+            const shiftType = shiftTypeSelect.value;
 
-          fetch("/add_shifts", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify([
-              {
-                name: name,
-                date: date,
-                shift_type: shiftType,
-              },
-            ]),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              document.getElementById("response").textContent = JSON.stringify(
-                data,
-                null,
-                2
+            try {
+              const response = await fetch("/add_shifts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify([{ name, date, shift_type: shiftType }]),
+              });
+              const data = await response.json();
+              responsePre.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+              console.error(
+                "Fehler beim Hinzufügen der einzelnen Schicht:",
+                error
               );
-            });
-        });
+            }
+          });
 
-      // Batch-Import hinzufügen
-      document
-        .getElementById("batch-form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-          const name = document.getElementById("batch-name").value;
-          const shiftsText = document.getElementById("batch-shifts").value;
+        // Batch-Import hinzufügen
+        document
+          .getElementById("batch-form")
+          .addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const name = batchNameSelect.value;
+            const shiftsText = document.getElementById("batch-shifts").value;
 
-          const currentYear = new Date().getFullYear(); // Aktuelles Jahr
-          const shifts = shiftsText
-            .trim()
-            .split("\n")
-            .map((line) => {
-              const [date, shiftType] = line.split(":");
-              const [day, month] = date.trim().split(".");
-              const formattedDate = `${currentYear}-${month.padStart(
-                2,
-                "0"
-              )}-${day.padStart(2, "0")}`;
-              return {
-                name: name,
-                date: formattedDate,
-                shift_type: shiftType.trim(),
-              };
-            });
+            const currentYear = new Date().getFullYear();
+            const shifts = shiftsText
+              .trim()
+              .split("\n")
+              .map((line) => {
+                const [date, shiftType] = line.split(":");
+                const [day, month] = date.trim().split(".");
+                const formattedDate = `${currentYear}-${month.padStart(
+                  2,
+                  "0"
+                )}-${day.padStart(2, "0")}`;
+                return {
+                  name,
+                  date: formattedDate,
+                  shift_type: shiftType.trim(),
+                };
+              });
 
-          fetch("/add_shifts", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(shifts),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              document.getElementById("response").textContent = JSON.stringify(
-                data,
-                null,
-                2
-              );
-            });
-        });
+            try {
+              const response = await fetch("/add_shifts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(shifts),
+              });
+              const data = await response.json();
+              responsePre.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+              console.error("Fehler beim Batch-Import:", error);
+            }
+          });
+
+        fetchOptions();
+      });
     </script>
   </body>
 </html>
