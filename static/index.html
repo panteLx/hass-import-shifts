@@ -3,244 +3,75 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Schichtplan eingeben</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        line-height: 1.6;
-        margin: 0;
-        padding: 0;
-        padding: 20px;
-      }
-      h1,
-      h2 {
-        color: #333;
-      }
-      form {
-        margin-bottom: 20px;
-      }
-      label {
-        display: block;
-        margin: 10px 0 5px;
-      }
-      select,
-      input[type="date"],
-      textarea {
-        width: 100%;
-        padding: 8px;
-        margin: 5px 0;
-      }
-      textarea {
-        resize: vertical;
-      }
-      input[type="submit"] {
-        background-color: #007bff;
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        cursor: pointer;
-      }
-      input[type="submit"]:hover {
-        background-color: #0056b3;
-      }
-      .response {
-        border: 1px solid #ddd;
-        padding: 10px;
-        background: #f9f9f9;
-      }
-    </style>
+    <link rel="stylesheet" href="static/assets/style.css" />
+    <title>Schichtplan Import</title>
   </head>
   <body>
-    <h1>Schichtplan eingeben</h1>
-
-    <!-- Formular für Einzelne Schicht -->
-    <form id="shift-form">
-      <label for="name">Name:</label>
-      <select id="name" name="name" required>
-        <option value="">Bitte auswählen</option>
-      </select>
-
-      <label for="date">Datum (YYYY-MM-DD):</label>
-      <input type="date" id="date" name="date" required />
-
-      <label for="shift_type">Schichttyp:</label>
-      <select id="shift_type" name="shift_type" required>
-        <option value="">Bitte auswählen</option>
-      </select>
-
-      <input type="submit" value="Einzeln hinzufügen" />
-    </form>
-
-    <h2>Batch-Import</h2>
-
-    <!-- Formular für Batch-Import -->
-    <form id="batch-form">
-      <label for="batch-name">Name:</label>
-      <select id="batch-name" name="name" required>
-        <option value="">Bitte auswählen</option>
-      </select>
-
-      <label for="batch-shifts">
-        Schichten (Format: DD.MM:Schichttyp, z.B. 06.08:Früh):
-      </label>
-      <textarea
-        id="batch-shifts"
-        name="batch-shifts"
-        rows="10"
-        required
-      ></textarea>
-
-      <div id="available-shift-types">
-        <!-- Hier werden die verfügbaren Schichten angezeigt -->
+    <h1>Schichtplan Import</h1>
+    <div class="container">
+      <div class="button-container">
+        <button id="show-single-form">Einzelimport</button>
+        <button id="show-batch-form">Batch-Import</button>
       </div>
 
-      <input type="submit" value="Batch hinzufügen" />
-    </form>
+      <!-- Formular für Einzelne Schicht -->
+      <div id="single-form" class="hidden">
+        <h2>Einzelne Schicht hinzufügen</h2>
+        <form id="shift-form">
+          <div class="form-group">
+            <label for="name">Name:</label>
+            <select id="name" name="name" required>
+              <option value="">Bitte auswählen</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="date">Datum (YYYY-MM-DD):</label>
+            <input type="date" id="date" name="date" required />
+          </div>
+          <div class="form-group">
+            <label for="shift_type">Schichttyp:</label>
+            <select id="shift_type" name="shift_type" required>
+              <option value="">Bitte auswählen</option>
+            </select>
+          </div>
+          <input type="submit" value="Einzeln hinzufügen" />
+        </form>
+      </div>
 
-    <h2>Antwort:</h2>
-    <pre id="response" class="response"></pre>
+      <!-- Formular für Batch-Import -->
+      <div id="batch-form" class="hidden">
+        <h2>Batch-Import von Schichten</h2>
+        <form id="batch-form">
+          <div class="form-group">
+            <label for="batch-name">Name:</label>
+            <select id="batch-name" name="name" required>
+              <option value="">Bitte auswählen</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="batch-shifts"
+              >Schichten (Format: DD.MM:Schichttyp, z.B. 06.08:Früh):</label
+            >
+            <textarea
+              id="batch-shifts"
+              name="batch-shifts"
+              rows="10"
+              required
+            ></textarea>
+          </div>
+          <div id="available-shift-types">
+            <!-- Hier werden die verfügbaren Schichten angezeigt -->
+          </div>
+          <input type="submit" value="Batch hinzufügen" />
+        </form>
+      </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const nameSelect = document.getElementById("name");
-        const batchNameSelect = document.getElementById("batch-name");
-        const shiftTypeSelect = document.getElementById("shift_type");
-        const availableShiftTypesDiv = document.getElementById(
-          "available-shift-types"
-        );
-        const responsePre = document.getElementById("response");
-
-        // Funktion zum Abrufen der Optionen für die Dropdown-Menüs
-        async function fetchOptions() {
-          try {
-            const response = await fetch("/api/options");
-            const data = await response.json();
-
-            // Namen hinzufügen
-            data.names.forEach((name) => {
-              const option = document.createElement("option");
-              option.value = name;
-              option.textContent = name;
-              nameSelect.appendChild(option.cloneNode(true));
-              batchNameSelect.appendChild(option.cloneNode(true));
-            });
-
-            // Event-Listener für Einzel-Schicht-Formular
-            nameSelect.addEventListener("change", async function () {
-              const selectedName = this.value;
-              shiftTypeSelect.innerHTML =
-                '<option value="">Bitte auswählen</option>';
-              if (selectedName) {
-                await fetchShiftTypes(selectedName.toLowerCase(), "single");
-              }
-            });
-          } catch (error) {
-            console.error("Fehler beim Abrufen der Optionen:", error);
-          }
-        }
-
-        // Funktion zum Abrufen der Schichttypen
-        async function fetchShiftTypes(name, formType) {
-          try {
-            const response = await fetch(`/api/shift_types/${name}`);
-            const data = await response.json();
-
-            if (formType === "batch") {
-              availableShiftTypesDiv.innerHTML =
-                "<strong>Verfügbare Schichten:</strong><ul>";
-              data.shift_types.forEach((shiftType) => {
-                availableShiftTypesDiv.innerHTML += `<li>${shiftType}</li>`;
-              });
-              availableShiftTypesDiv.innerHTML += "</ul>";
-            } else if (formType === "single") {
-              data.shift_types.forEach((shiftType) => {
-                const option = document.createElement("option");
-                option.value = shiftType;
-                option.textContent = shiftType;
-                shiftTypeSelect.appendChild(option);
-              });
-            }
-          } catch (error) {
-            console.error("Fehler beim Abrufen der Schichttypen:", error);
-          }
-        }
-
-        // Event-Listener für Batch-Import-Formular
-        batchNameSelect.addEventListener("change", async function () {
-          const selectedName = this.value;
-          if (selectedName) {
-            await fetchShiftTypes(selectedName.toLowerCase(), "batch");
-          } else {
-            availableShiftTypesDiv.innerHTML = "";
-          }
-        });
-
-        // Einzelne Schicht hinzufügen
-        document
-          .getElementById("shift-form")
-          .addEventListener("submit", async function (event) {
-            event.preventDefault();
-            const name = nameSelect.value;
-            const date = document.getElementById("date").value;
-            const shiftType = shiftTypeSelect.value;
-
-            try {
-              const response = await fetch("/add_shifts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify([{ name, date, shift_type: shiftType }]),
-              });
-              const data = await response.json();
-              responsePre.textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-              console.error(
-                "Fehler beim Hinzufügen der einzelnen Schicht:",
-                error
-              );
-            }
-          });
-
-        // Batch-Import hinzufügen
-        document
-          .getElementById("batch-form")
-          .addEventListener("submit", async function (event) {
-            event.preventDefault();
-            const name = batchNameSelect.value;
-            const shiftsText = document.getElementById("batch-shifts").value;
-
-            const currentYear = new Date().getFullYear();
-            const shifts = shiftsText
-              .trim()
-              .split("\n")
-              .map((line) => {
-                const [date, shiftType] = line.split(":");
-                const [day, month] = date.trim().split(".");
-                const formattedDate = `${currentYear}-${month.padStart(
-                  2,
-                  "0"
-                )}-${day.padStart(2, "0")}`;
-                return {
-                  name,
-                  date: formattedDate,
-                  shift_type: shiftType.trim(),
-                };
-              });
-
-            try {
-              const response = await fetch("/add_shifts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(shifts),
-              });
-              const data = await response.json();
-              responsePre.textContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-              console.error("Fehler beim Batch-Import:", error);
-            }
-          });
-
-        fetchOptions();
-      });
-    </script>
+      <!-- Antwort-Container -->
+      <div id="response-container" class="hidden">
+        <h2>Antwort:</h2>
+        <pre id="response" class="response"></pre>
+      </div>
+    </div>
   </body>
+  <script src="static/assets/script.js"></script>
 </html>
