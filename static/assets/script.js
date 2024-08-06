@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
         responsePre.textContent = JSON.stringify(data, null, 2);
         responseContainer.classList.remove("hidden");
+        this.reset();
       } catch (error) {
         console.error("Fehler beim Hinzufügen der einzelnen Schicht:", error);
       }
