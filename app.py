@@ -80,7 +80,7 @@ def add_shifts():
         end_time = shifts[name.lower()][shift_type.lower()]['end']
         start_date_time = f'{date_str} {start_time}'
         end_date_time = f'{date_str} {end_time}'
-        summary = f'{name}: {shift_type}-Schicht'
+        summary = f'{name}: {shift_type}'
         description = f'Schicht von {start_time} bis {end_time}'
 
         url = f'{HA_URL}/api/services/calendar/create_event'
