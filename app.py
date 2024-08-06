@@ -72,8 +72,8 @@ def add_shifts():
         shift_type = format_shift_type(shift['shift_type'].lower())
 
         if name.lower() not in CALENDAR_ENTITY_IDS or shift_type.lower() not in shifts[name.lower()]:
-            results.append(f"Unbekannter Name oder Schichttyp: {
-                           name}, {shift_type}")
+            results.append(f"""Unbekannter Name oder Schichttyp: {
+                           name}, {shift_type}""")
             continue
 
         start_time = shifts[name.lower()][shift_type.lower()]['start']
@@ -99,8 +99,8 @@ def add_shifts():
         if response.status_code == 200:
             results.append(f'Ereignis hinzugefügt: {summary} am {date_str}')
         else:
-            results.append(f'Fehler beim Hinzufügen von {
-                           summary} am {date_str}: {response.text}')
+            results.append(f'''Fehler beim Hinzufügen von {
+                           summary} am {date_str}: {response.text}''')
 
     return jsonify(results)
 
