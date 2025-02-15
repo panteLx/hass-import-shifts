@@ -142,7 +142,9 @@ app.post("/add_shifts", async (req, res) => {
 });
 
 // Server starten
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  console.log(`Server läuft unter http://localhost:${PORT}`);
+
+app.listen(process.env.PORT || 3000, process.env.HOST || "127.0.0.1", () => {
+  console.log(
+    "Server läuft unter http://" + process.env.HOST + ":" + process.env.PORT
+  );
 });
