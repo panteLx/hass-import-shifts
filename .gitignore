@@ -1,4 +1,4 @@
 .env
-__pycache__
-.venv
+node_modules
+package-lock.json
 *Import_Helper.*
